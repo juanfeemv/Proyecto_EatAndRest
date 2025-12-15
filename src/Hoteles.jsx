@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Hoteles.css';
+import ReservaModal from './ReservaModal';
 
 function Hoteles({ onBack }) {
   const [allHotels, setAllHotels] = useState([]);
@@ -7,7 +8,9 @@ function Hoteles({ onBack }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [locations, setLocations] = useState([]);
-  
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedHotel, setSelectedHotel] = useState(null);
+
   const [filters, setFilters] = useState({
     categoria: '',
     ubicacion: '',
@@ -19,8 +22,8 @@ function Hoteles({ onBack }) {
 
   const getHotelCategory = (hotel) => {
     const nombre = hotel.Nombre.toLowerCase();
-    if (nombre.includes('resort') || nombre.includes('spa') || nombre.includes('palace') || 
-        nombre.includes('royal') || nombre.includes('luxury')) {
+    if (nombre.includes('resort') || nombre.includes('spa') || nombre.includes('palace') ||
+      nombre.includes('royal') || nombre.includes('luxury')) {
       return 5;
     } else if (nombre.includes('hotel') && (nombre.includes('boutique') || nombre.includes('premium'))) {
       return 4;
@@ -52,7 +55,7 @@ function Hoteles({ onBack }) {
         const text = await response.text();
         const cleanText = text.replace(/^\uFEFF/, '');
         const data = JSON.parse(cleanText);
-        
+
         const enrichedData = data.map(hotel => ({
           ...hotel,
           category: getHotelCategory(hotel),
@@ -62,10 +65,10 @@ function Hoteles({ onBack }) {
 
         setAllHotels(enrichedData);
         setFilteredHotels(enrichedData);
-        
+
         const uniqueLocations = [...new Set(enrichedData.map(h => h.Municipio))].sort();
         setLocations(uniqueLocations);
-        
+
         setLoading(false);
       } catch (err) {
         setError(err.message);
@@ -104,6 +107,16 @@ function Hoteles({ onBack }) {
     });
   };
 
+  const handleReservaClick = (hotel) => {
+    setSelectedHotel(hotel);
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedHotel(null);
+  };
+
   const categoryLabels = {
     5: 'LUJO',
     4: 'SUPERIOR',
@@ -123,18 +136,18 @@ function Hoteles({ onBack }) {
   return (
     <div className="hoteles-page">
       <button className="back-button" onClick={onBack}>← Volver</button>
-      
+
       <div className="header-section">
         <h1>Hoteles de Murcia</h1>
       </div>
-      
+
       <div className="filters-container">
         <h3>Personaliza tu búsqueda</h3>
         <div className="filters-grid">
           <div className="filter-group">
             <label htmlFor="categoria">Categoría</label>
-            <select 
-              id="categoria" 
+            <select
+              id="categoria"
               name="categoria"
               value={filters.categoria}
               onChange={handleFilterChange}
@@ -149,7 +162,7 @@ function Hoteles({ onBack }) {
 
           <div className="filter-group">
             <label htmlFor="ubicacion">Ubicación</label>
-            <select 
+            <select
               id="ubicacion"
               name="ubicacion"
               value={filters.ubicacion}
@@ -164,7 +177,7 @@ function Hoteles({ onBack }) {
 
           <div className="filter-group">
             <label htmlFor="valoracion">Valoración</label>
-            <select 
+            <select
               id="valoracion"
               name="valoracion"
               value={filters.valoracion}
@@ -179,7 +192,7 @@ function Hoteles({ onBack }) {
 
           <div className="filter-group">
             <label htmlFor="disponibilidad">Disponibilidad</label>
-            <select 
+            <select
               id="disponibilidad"
               name="disponibilidad"
               value={filters.disponibilidad}
@@ -209,8 +222,8 @@ function Hoteles({ onBack }) {
           filteredHotels.map(hotel => (
             <div key={hotel.Código} className="hotel-card">
               <div className="hotel-image-container">
-                <img 
-                  src={hotel['Foto 1'] || 'https://via.placeholder.com/600x400?text=Sin+imagen'} 
+                <img
+                  src={hotel['Foto 1'] || 'https://via.placeholder.com/600x400?text=Sin+imagen'}
                   alt={hotel.Nombre}
                   className="hotel-image"
                 />
@@ -222,12 +235,21 @@ function Hoteles({ onBack }) {
                   <span className="hotel-location">📍 {hotel.Municipio}</span>
                   <span className="hotel-rating">⭐ {hotel.rating}</span>
                 </div>
-                <button className="reservar-btn">RESERVAR</button>
+                <button className="reservar-btn" onClick={() => handleReservaClick(hotel)}>RESERVAR</button>
               </div>
             </div>
           ))
         )}
       </div>
+
+      {selectedHotel && (
+        <ReservaModal
+          isOpen={modalOpen}
+          onClose={handleCloseModal}
+          item={selectedHotel}
+          tipo="hotel"
+        />
+      )}
     </div>
   );
 }

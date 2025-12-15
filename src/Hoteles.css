@@ -11,6 +11,7 @@
   background-color: #f8f8f6;
   min-height: 100vh;
   padding: 20px;
+  animation: fadeIn 0.5s ease-out;
 }
 
 .back-button {
@@ -29,11 +30,13 @@
   transition: all 0.3s ease;
   z-index: 1000;
   text-transform: uppercase;
+  animation: slideInLeft 0.6s ease-out;
 }
 
 .back-button:hover {
   background: #2c3e2e;
   color: white;
+  transform: translateX(-5px);
 }
 
 .header-section {
@@ -41,13 +44,14 @@
   padding: 80px 20px 40px;
   max-width: 800px;
   margin: 0 auto;
+  animation: fadeInDown 0.8s ease-out 0.2s both;
 }
 
 .header-section h1 {
   font-family: 'Playfair Display', serif;
   font-size: 4rem;
   font-weight: 400;
-  color: #2c3e2e;   
+  color: #2c3e2e;
   margin-bottom: 15px;
   letter-spacing: -7px;
 }
@@ -58,6 +62,7 @@
   background: white;
   padding: 40px;
   border: 1px solid #e0e0dc;
+  animation: fadeInUp 0.8s ease-out 0.4s both;
 }
 
 .filters-container h3 {
@@ -124,6 +129,28 @@
   cursor: pointer;
   transition: all 0.3s ease;
   border: 1px solid #2c3e2e;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-apply::before,
+.btn-reset::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(44, 62, 46, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.btn-apply:hover::before,
+.btn-reset:hover::before {
+  width: 300px;
+  height: 300px;
 }
 
 .btn-apply {
@@ -153,6 +180,7 @@
   margin: 30px 0;
   letter-spacing: 1px;
   text-transform: uppercase;
+  animation: fadeIn 0.8s ease-out 0.6s both;
 }
 
 .container {
@@ -168,10 +196,17 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   border: 1px solid #e0e0dc;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
   height: 450px;
+  animation: fadeInScale 0.6s ease-out both;
+  animation-delay: calc(var(--card-index, 0) * 0.1s);
 }
 
+.hotel-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
 
 .hotel-image-container {
   position: relative;
@@ -185,6 +220,9 @@
   transition: transform 0.5s ease;
 }
 
+.hotel-card:hover .hotel-image {
+  transform: scale(1.1);
+}
 
 .category-badge {
   position: absolute;
@@ -196,6 +234,11 @@
   font-size: 0.7rem;
   letter-spacing: 2px;
   font-weight: 600;
+  transition: transform 0.3s ease;
+}
+
+.hotel-card:hover .category-badge {
+  transform: scale(1.05);
 }
 
 .hotel-details {
@@ -225,7 +268,7 @@
   margin-bottom: 25px;
   padding-bottom: 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    letter-spacing: 0.5px;
+  letter-spacing: 0.5px;
 
 }
 
@@ -247,6 +290,7 @@
 .reservar-btn:hover {
   background: white;
   color: #2c3e2e;
+  transform: translateX(5px);
 }
 
 .loading,
@@ -256,12 +300,71 @@
   padding: 80px 20px;
   font-size: 1.2rem;
   color: #6b7c6e;
-  letter-spacing: 0.3px;  
+  letter-spacing: 0.3px;
 
 }
 
 .error {
   color: #c74343;
+}
+
+/* ========== ANIMATIONS ========== */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @media (max-width: 1100px) {

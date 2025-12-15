@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Restaurantes.css';
+import ReservaModal from './ReservaModal';
 
 function Restaurantes({ onBack }) {
   const [allRestaurants, setAllRestaurants] = useState([]);
@@ -7,6 +8,8 @@ function Restaurantes({ onBack }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [locations, setLocations] = useState([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedRestaurant, setSelectedRestaurant] = useState(null);
 
   const [filters, setFilters] = useState({
     tipo: '',
@@ -105,6 +108,16 @@ function Restaurantes({ onBack }) {
     });
   };
 
+  const handleReservaClick = (restaurant) => {
+    setSelectedRestaurant(restaurant);
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedRestaurant(null);
+  };
+
   const categoryLabels = {
     5: 'GOURMET',
     4: 'TRADICIONAL',
@@ -120,7 +133,7 @@ function Restaurantes({ onBack }) {
   if (error) {
     return <div className="error">Error al cargar los restaurantes: {error}</div>;
   }
-  
+
   return (
     <div className="restaurantes-page">
       <button className="back-button" onClick={onBack}>← Volver</button>
@@ -223,12 +236,21 @@ function Restaurantes({ onBack }) {
                   <span className="restaurant-location">📍 {restaurant.Municipio}</span>
                   <span className="restaurant-rating">⭐ {restaurant.rating}</span>
                 </div>
-                <button className="reservar-btn">RESERVAR</button>
+                <button className="reservar-btn" onClick={() => handleReservaClick(restaurant)}>RESERVAR</button>
               </div>
             </div>
           ))
         )}
       </div>
+
+      {selectedRestaurant && (
+        <ReservaModal
+          isOpen={modalOpen}
+          onClose={handleCloseModal}
+          item={selectedRestaurant}
+          tipo="restaurante"
+        />
+      )}
     </div>
   );
 }

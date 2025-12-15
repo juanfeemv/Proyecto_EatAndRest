@@ -148,6 +148,178 @@
    animation: bounce 2s infinite;
  }
 
+ /* ========== ANIMATIONS ========== */
+
+ /* Keyframes for logo entrance */
+ @keyframes fadeInDown {
+   from {
+     opacity: 0;
+     transform: translateY(-30px);
+   }
+
+   to {
+     opacity: 1;
+     transform: translateY(0);
+   }
+ }
+
+ /* Keyframes for title entrance */
+ @keyframes fadeInUp {
+   from {
+     opacity: 0;
+     transform: translateY(30px);
+   }
+
+   to {
+     opacity: 1;
+     transform: translateY(0);
+   }
+ }
+
+ /* Keyframes for buttons entrance */
+ @keyframes fadeInScale {
+   from {
+     opacity: 0;
+     transform: scale(0.8);
+   }
+
+   to {
+     opacity: 1;
+     transform: scale(1);
+   }
+ }
+
+ /* Enhanced bounce animation for scroll indicator */
+ @keyframes bounce {
+
+   0%,
+   20%,
+   50%,
+   80%,
+   100% {
+     transform: translateY(0) translateX(-50%);
+   }
+
+   40% {
+     transform: translateY(-15px) translateX(-50%);
+   }
+
+   60% {
+     transform: translateY(-7px) translateX(-50%);
+   }
+ }
+
+ /* Fade in animation for secondary section */
+ @keyframes fadeIn {
+   from {
+     opacity: 0;
+   }
+
+   to {
+     opacity: 1;
+   }
+ }
+
+ /* View transition animation */
+ @keyframes slideIn {
+   from {
+     opacity: 0;
+     transform: translateX(20px);
+   }
+
+   to {
+     opacity: 1;
+     transform: translateX(0);
+   }
+ }
+
+ /* Apply animations to elements */
+ .logo {
+   animation: fadeInDown 0.8s ease-out;
+ }
+
+ .titulo-hero {
+   animation: fadeInUp 1s ease-out 0.2s both;
+ }
+
+ .contenedor-botones {
+   animation: fadeInScale 0.8s ease-out 0.5s both;
+ }
+
+ .contenedor-botones .boton:nth-child(1) {
+   animation: fadeInScale 0.6s ease-out 0.7s both;
+ }
+
+ .contenedor-botones .boton:nth-child(2) {
+   animation: fadeInScale 0.6s ease-out 0.85s both;
+ }
+
+ .scroll-down-indicator {
+   animation: bounce 2s infinite, fadeIn 0.8s ease-out 1s both;
+ }
+
+ .seccion-secundaria {
+   opacity: 0;
+   transform: translateY(50px);
+   transition: opacity 1s ease-out, transform 1s ease-out;
+ }
+
+ .seccion-secundaria.visible {
+   opacity: 1;
+   transform: translateY(0);
+ }
+
+ .titulo-secundario {
+   opacity: 0;
+   transform: translateY(30px);
+   transition: opacity 0.8s ease-out 0.3s, transform 0.8s ease-out 0.3s;
+ }
+
+ .seccion-secundaria.visible .titulo-secundario {
+   opacity: 1;
+   transform: translateY(0);
+ }
+
+ .descripcion {
+   opacity: 0;
+   transform: translateY(30px);
+   transition: opacity 0.8s ease-out 0.5s, transform 0.8s ease-out 0.5s;
+ }
+
+ .seccion-secundaria.visible .descripcion {
+   opacity: 1;
+   transform: translateY(0);
+ }
+
+ /* Button pulse effect on hover */
+ .boton {
+   position: relative;
+   overflow: hidden;
+ }
+
+ .boton::before {
+   content: '';
+   position: absolute;
+   top: 50%;
+   left: 50%;
+   width: 0;
+   height: 0;
+   border-radius: 50%;
+   background: rgba(255, 255, 255, 0.3);
+   transform: translate(-50%, -50%);
+   transition: width 0.6s, height 0.6s;
+ }
+
+ .boton:hover::before {
+   width: 300px;
+   height: 300px;
+ }
+
+ .boton span {
+   position: relative;
+   z-index: 1;
+ }
+
  @media (max-width: 768px) {
    .titulo-hero {
      font-size: 3rem;

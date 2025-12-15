@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import Restaurantes from './Restaurantes';
 import Hoteles from './Hoteles';
@@ -6,6 +6,38 @@ import escudoMurcia from './assets/Escudo_ca_Murcia_(stylized).svg.png';
 
 function App() {
   const [currentView, setCurrentView] = useState('home');
+  const [isSecondaryVisible, setIsSecondaryVisible] = useState(false);
+  const secondaryRef = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsSecondaryVisible(true);
+          }
+        });
+      },
+      {
+        threshold: 0.2, // Trigger when 20% of the section is visible
+      }
+    );
+
+    if (secondaryRef.current) {
+      observer.observe(secondaryRef.current);
+    }
+
+    return () => {
+      if (secondaryRef.current) {
+        observer.unobserve(secondaryRef.current);
+      }
+    };
+  }, []);
+
+  // Scroll to top when view changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentView]);
 
   const handleRestaurantesClick = () => {
     setCurrentView('restaurantes');
@@ -20,11 +52,19 @@ function App() {
   };
 
   if (currentView === 'hoteles') {
-    return <Hoteles onBack={handleBackToHome} />;
+    return (
+      <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
+        <Hoteles onBack={handleBackToHome} />
+      </div>
+    );
   }
 
   if (currentView === 'restaurantes') {
-    return <Restaurantes onBack={handleBackToHome} />;
+    return (
+      <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
+        <Restaurantes onBack={handleBackToHome} />
+      </div>
+    );
   }
 
   return (
@@ -44,10 +84,10 @@ function App() {
 
         <div className="contenedor-botones">
           <button className="boton" onClick={handleRestaurantesClick}>
-            Restaurantes
+            <span>Restaurantes</span>
           </button>
           <button className="boton" onClick={handleAlojamientosClick}>
-            Alojamientos
+            <span>Alojamientos</span>
           </button>
         </div>
         <div className="scroll-down-indicator">
@@ -55,7 +95,10 @@ function App() {
         </div>
       </section>
 
-      <section className="seccion-secundaria">
+      <section
+        ref={secondaryRef}
+        className={`seccion-secundaria ${isSecondaryVisible ? 'visible' : ''}`}
+      >
         <h2 className="titulo-secundario">
           Come, bebe y descubre:<br />
           Construye nuevos recuerdos en Murcia.
