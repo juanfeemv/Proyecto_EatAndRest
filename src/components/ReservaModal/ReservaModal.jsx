@@ -3,7 +3,6 @@ import * as utm from 'utm';
 import './ReservaModal.css';
 
 function ReservaModal({ isOpen, onClose, item, tipo }) {
-    const stripeCheckoutUrl = import.meta.env.VITE_STRIPE_CHECKOUT_URL;
 
     // Estado del formulario y validación mínima en cliente
     const [formData, setFormData] = useState({
@@ -96,11 +95,6 @@ function ReservaModal({ isOpen, onClose, item, tipo }) {
         const reservasGuardadas = JSON.parse(localStorage.getItem('reservas') || '[]');
         reservasGuardadas.push(reserva);
         localStorage.setItem('reservas', JSON.stringify(reservasGuardadas));
-
-        if (stripeCheckoutUrl) {
-            window.location.href = stripeCheckoutUrl;
-            return;
-        }
 
         // Mostrar mensaje de éxito
         setShowSuccess(true);

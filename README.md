@@ -11,20 +11,8 @@
 - Geocoding de respaldo: https://geocoding-api.open-meteo.com/v1/search para obtener lat/lon a partir del municipio (ver arriba).
 - Se limita a los primeros 20 ítems visibles mediante `visibleCount` en [Hoteles](src/pages/Hoteles/Hoteles.jsx) y [Restaurantes](src/pages/Restaurantes/Restaurantes.jsx).
 
-## Pasarela de pagos (Stripe)
-- Usa un Payment Link/Checkout URL de prueba configurado en `.env.local` (señalado en [src/components/ReservaModal/ReservaModal.jsx](src/components/ReservaModal/ReservaModal.jsx)):
-	VITE_STRIPE_CHECKOUT_URL=https://checkout.stripe.com/c/pay_xxx
-- Tras guardar la reserva en `localStorage`, el modal redirige a esa URL (misma sección de líneas arriba).
-
 ## Google Maps
 - Embed vía `<iframe>` con `https://www.google.com/maps?q=lat,lng&output=embed`, priorizando coords válidas; si no, búsqueda textual con el nombre/dirección. Implementado en [src/components/ReservaModal/ReservaModal.jsx](src/components/ReservaModal/ReservaModal.jsx).
 
-## Variables de entorno
-Crea `.env.local` en la raíz con la URL de Stripe:
-```
-VITE_STRIPE_CHECKOUT_URL=https://checkout.stripe.com/c/pay_xxx
-```
-
 ## Notas
 - No es necesario API key para Open‑Meteo ni para el embed de Google Maps.
-- Para un checkout dinámico necesitarás backend que cree sesiones de Stripe con la clave secreta.
