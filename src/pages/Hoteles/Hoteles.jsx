@@ -1,15 +1,120 @@
 import React, { useState, useEffect } from 'react';
+import * as utm from 'utm';
 import './Hoteles.css';
-import ReservaModal from './ReservaModal';
+import ReservaModal from '../../components/ReservaModal/ReservaModal';
+
+const weatherCacheHotels = new Map();
+const cityCacheHotels = new Map();
+
+const weatherCodeLabels = {
+  0: 'Despejado',
+  1: 'Mayormente despejado',
+  2: 'Parcialmente nublado',
+  3: 'Nublado',
+  45: 'Niebla',
+  48: 'Niebla helada',
+  51: 'Llovizna ligera',
+  53: 'Llovizna',
+  55: 'Llovizna intensa',
+  61: 'Lluvia ligera',
+  63: 'Lluvia moderada',
+  65: 'Lluvia intensa',
+  71: 'Nieve ligera',
+  73: 'Nieve',
+  75: 'Nieve intensa',
+  80: 'Chubascos ligeros',
+  81: 'Chubascos',
+  82: 'Chubascos fuertes',
+  95: 'Tormenta',
+  96: 'Tormenta ligera',
+  99: 'Tormenta fuerte'
+};
+
+const toLatLonSafe = (north, east) => {
+  try {
+    if (Number.isNaN(north) || Number.isNaN(east)) return null;
+    const res = utm.toLatLon(east, north, 30, 'N');
+    if (Math.abs(res.latitude) <= 90 && Math.abs(res.longitude) <= 180) {
+      return { lat: res.latitude, lng: res.longitude };
+    }
+    return null;
+  } catch (err) {
+    return null;
+  }
+};
+
+const parseCoords = (item) => {
+  const rawLat = item?.Latitud || item?.latitud || item?.LATITUD;
+  const rawLng = item?.Longitud || item?.longitud || item?.LONGITUD;
+
+  if (!rawLat || !rawLng) return null;
+
+  const numLat = parseFloat(String(rawLat).replace(',', '.'));
+  const numLng = parseFloat(String(rawLng).replace(',', '.'));
+
+  const looksLikeLatLng = !Number.isNaN(numLat) && !Number.isNaN(numLng) && Math.abs(numLat) <= 90 && Math.abs(numLng) <= 180;
+  if (looksLikeLatLng) {
+    return { lat: numLat, lng: numLng };
+  }
+
+  const looksLikeUTM = (!Number.isNaN(numLat) && Math.abs(numLat) > 180) || (!Number.isNaN(numLng) && Math.abs(numLng) > 180);
+  if (looksLikeUTM) {
+    const first = toLatLonSafe(numLat, numLng);
+    if (first) return first;
+    const swapped = toLatLonSafe(numLng, numLat);
+    if (swapped) return swapped;
+  }
+
+  return null;
+};
+
+const geocodeCity = async (municipio) => {
+  if (!municipio) return null;
+  const key = municipio.toLowerCase();
+  if (cityCacheHotels.has(key)) return cityCacheHotels.get(key);
+
+  const query = encodeURIComponent(`${municipio}, Murcia, España`);
+  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${query}&count=1&language=es&format=json&country=ES`;
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const data = await res.json();
+  const first = data?.results?.[0];
+  if (first?.latitude && first?.longitude) {
+    const coords = { lat: first.latitude, lng: first.longitude };
+    cityCacheHotels.set(key, coords);
+    return coords;
+  }
+  return null;
+};
+
+const DEFAULT_COORDS = { lat: 37.9922, lng: -1.1307 }; // Murcia centro
+
+const fetchCurrentWeather = async (lat, lng) => {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&timezone=auto`;
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const data = await res.json();
+  const cw = data?.current_weather;
+  if (!cw) return null;
+  return {
+    temperature: cw.temperature,
+    windspeed: cw.windspeed,
+    code: cw.weathercode,
+    label: weatherCodeLabels[cw.weathercode] || 'Tiempo actual'
+  };
+};
 
 function Hoteles({ onBack }) {
+  // Estado principal: datos, selección y paginado
   const [allHotels, setAllHotels] = useState([]);
   const [filteredHotels, setFilteredHotels] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Estado loading eliminado (no se usaba)
   const [error, setError] = useState(null);
   const [locations, setLocations] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedHotel, setSelectedHotel] = useState(null);
+  const [weatherById, setWeatherById] = useState({});
+  const [visibleCount, setVisibleCount] = useState(20);
 
   const [filters, setFilters] = useState({
     categoria: '',
@@ -48,6 +153,7 @@ function Hoteles({ onBack }) {
   useEffect(() => {
     const fetchHotels = async () => {
       try {
+        // Descarga y enriquece catálogo de hoteles
         const response = await fetch(API_URL);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -69,15 +175,60 @@ function Hoteles({ onBack }) {
         const uniqueLocations = [...new Set(enrichedData.map(h => h.Municipio))].sort();
         setLocations(uniqueLocations);
 
-        setLoading(false);
       } catch (err) {
         setError(err.message);
-        setLoading(false);
       }
     };
 
     fetchHotels();
   }, []);
+
+  useEffect(() => {
+    const fetchWeatherForFiltered = async () => {
+      if (!filteredHotels.length) return;
+
+      const subset = filteredHotels.slice(0, visibleCount);
+      const updates = {};
+
+      await Promise.all(subset.map(async (hotel) => {
+        // Prioriza coords del dataset; si no hay, geocodifica municipio
+        let coords = parseCoords(hotel);
+        if (!coords) {
+          coords = await geocodeCity(hotel.Municipio);
+        }
+        if (!coords) {
+          coords = DEFAULT_COORDS;
+        }
+        if (!coords) return;
+
+        const cacheKey = `${coords.lat.toFixed(3)},${coords.lng.toFixed(3)}`;
+
+        if (weatherCacheHotels.has(cacheKey)) {
+          updates[hotel.Código] = weatherCacheHotels.get(cacheKey);
+          return;
+        }
+
+        try {
+          const weather = await fetchCurrentWeather(coords.lat, coords.lng);
+          if (weather) {
+            weatherCacheHotels.set(cacheKey, weather);
+            updates[hotel.Código] = weather;
+          } else {
+            updates[hotel.Código] = { label: 'Sin datos', temperature: null };
+          }
+        } catch (err) {
+          console.error('Error obteniendo el tiempo:', err);
+          updates[hotel.Código] = { label: 'Sin datos', temperature: null };
+        }
+      }));
+
+      if (Object.keys(updates).length) {
+        setWeatherById((prev) => ({ ...prev, ...updates }));
+      }
+    };
+
+    fetchWeatherForFiltered();
+  }, [filteredHotels, visibleCount]);
 
   const applyFilters = () => {
     let filtered = allHotels.filter(hotel => {
@@ -88,6 +239,7 @@ function Hoteles({ onBack }) {
       return true;
     });
     setFilteredHotels(filtered);
+    setVisibleCount(20);
   };
 
   const resetFilters = () => {
@@ -98,6 +250,7 @@ function Hoteles({ onBack }) {
       disponibilidad: 'todos'
     });
     setFilteredHotels(allHotels);
+    setVisibleCount(20);
   };
 
   const handleFilterChange = (e) => {
@@ -122,11 +275,6 @@ function Hoteles({ onBack }) {
     4: 'SUPERIOR',
     3: 'ESTÁNDAR',
     2: 'ECONÓMICO'
-  };
-
-  const availabilityLabels = {
-    'disponible': '✓ Disponible',
-    'reserva': '⏰ Bajo reserva'
   };
 
   if (error) {
@@ -219,7 +367,7 @@ function Hoteles({ onBack }) {
         {filteredHotels.length === 0 ? (
           <div className="no-results">No se encontraron hoteles con los filtros seleccionados</div>
         ) : (
-          filteredHotels.map(hotel => (
+          filteredHotels.slice(0, visibleCount).map(hotel => (
             <div key={hotel.Código} className="hotel-card">
               <div className="hotel-image-container">
                 <img
@@ -234,6 +382,18 @@ function Hoteles({ onBack }) {
                 <div className="hotel-meta">
                   <span className="hotel-location">📍 {hotel.Municipio}</span>
                   <span className="hotel-rating">⭐ {hotel.rating}</span>
+                  <span className="weather-badge">
+                    {weatherById[hotel.Código]
+                      ? (
+                        <>
+                          🌤️ {weatherById[hotel.Código].temperature !== null && weatherById[hotel.Código].temperature !== undefined
+                            ? `${Math.round(weatherById[hotel.Código].temperature)}°C`
+                            : '--'}
+                          {` · ${weatherById[hotel.Código].label || 'Tiempo'}`}
+                        </>
+                      )
+                      : '🌤️ Cargando tiempo...'}
+                  </span>
                 </div>
                 <button className="reservar-btn" onClick={() => handleReservaClick(hotel)}>RESERVAR</button>
               </div>
@@ -241,6 +401,14 @@ function Hoteles({ onBack }) {
           ))
         )}
       </div>
+
+      {filteredHotels.length > visibleCount && (
+        <div className="load-more-container">
+          <button className="load-more-btn" onClick={() => setVisibleCount((v) => v + 20)}>
+            Cargar más
+          </button>
+        </div>
+      )}
 
       {selectedHotel && (
         <ReservaModal

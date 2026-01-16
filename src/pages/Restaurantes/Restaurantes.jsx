@@ -1,15 +1,120 @@
 import React, { useState, useEffect } from 'react';
+import * as utm from 'utm';
 import './Restaurantes.css';
-import ReservaModal from './ReservaModal';
+import ReservaModal from '../../components/ReservaModal/ReservaModal';
+
+const weatherCacheRestaurants = new Map();
+const cityCacheRestaurants = new Map();
+
+const weatherCodeLabels = {
+  0: 'Despejado',
+  1: 'Mayormente despejado',
+  2: 'Parcialmente nublado',
+  3: 'Nublado',
+  45: 'Niebla',
+  48: 'Niebla helada',
+  51: 'Llovizna ligera',
+  53: 'Llovizna',
+  55: 'Llovizna intensa',
+  61: 'Lluvia ligera',
+  63: 'Lluvia moderada',
+  65: 'Lluvia intensa',
+  71: 'Nieve ligera',
+  73: 'Nieve',
+  75: 'Nieve intensa',
+  80: 'Chubascos ligeros',
+  81: 'Chubascos',
+  82: 'Chubascos fuertes',
+  95: 'Tormenta',
+  96: 'Tormenta ligera',
+  99: 'Tormenta fuerte'
+};
+
+const toLatLonSafe = (north, east) => {
+  try {
+    if (Number.isNaN(north) || Number.isNaN(east)) return null;
+    const res = utm.toLatLon(east, north, 30, 'N');
+    if (Math.abs(res.latitude) <= 90 && Math.abs(res.longitude) <= 180) {
+      return { lat: res.latitude, lng: res.longitude };
+    }
+    return null;
+  } catch (err) {
+    return null;
+  }
+};
+
+const parseCoords = (item) => {
+  const rawLat = item?.Latitud || item?.latitud || item?.LATITUD;
+  const rawLng = item?.Longitud || item?.longitud || item?.LONGITUD;
+
+  if (!rawLat || !rawLng) return null;
+
+  const numLat = parseFloat(String(rawLat).replace(',', '.'));
+  const numLng = parseFloat(String(rawLng).replace(',', '.'));
+
+  const looksLikeLatLng = !Number.isNaN(numLat) && !Number.isNaN(numLng) && Math.abs(numLat) <= 90 && Math.abs(numLng) <= 180;
+  if (looksLikeLatLng) {
+    return { lat: numLat, lng: numLng };
+  }
+
+  const looksLikeUTM = (!Number.isNaN(numLat) && Math.abs(numLat) > 180) || (!Number.isNaN(numLng) && Math.abs(numLng) > 180);
+  if (looksLikeUTM) {
+    const first = toLatLonSafe(numLat, numLng);
+    if (first) return first;
+    const swapped = toLatLonSafe(numLng, numLat);
+    if (swapped) return swapped;
+  }
+
+  return null;
+};
+
+const geocodeCity = async (municipio) => {
+  if (!municipio) return null;
+  const key = municipio.toLowerCase();
+  if (cityCacheRestaurants.has(key)) return cityCacheRestaurants.get(key);
+
+  const query = encodeURIComponent(`${municipio}, Murcia, España`);
+  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${query}&count=1&language=es&format=json&country=ES`;
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const data = await res.json();
+  const first = data?.results?.[0];
+  if (first?.latitude && first?.longitude) {
+    const coords = { lat: first.latitude, lng: first.longitude };
+    cityCacheRestaurants.set(key, coords);
+    return coords;
+  }
+  return null;
+};
+
+const DEFAULT_COORDS = { lat: 37.9922, lng: -1.1307 }; // Murcia centro
+
+const fetchCurrentWeather = async (lat, lng) => {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&timezone=auto`;
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const data = await res.json();
+  const cw = data?.current_weather;
+  if (!cw) return null;
+  return {
+    temperature: cw.temperature,
+    windspeed: cw.windspeed,
+    code: cw.weathercode,
+    label: weatherCodeLabels[cw.weathercode] || 'Tiempo actual'
+  };
+};
 
 function Restaurantes({ onBack }) {
+  // Estado principal: datos, selección y paginado
   const [allRestaurants, setAllRestaurants] = useState([]);
   const [filteredRestaurants, setFilteredRestaurants] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Estado loading eliminado (no se usaba)
   const [error, setError] = useState(null);
   const [locations, setLocations] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  const [weatherById, setWeatherById] = useState({});
+  const [visibleCount, setVisibleCount] = useState(20);
 
   const [filters, setFilters] = useState({
     tipo: '',
@@ -49,6 +154,7 @@ function Restaurantes({ onBack }) {
   useEffect(() => {
     const fetchRestaurants = async () => {
       try {
+        // Descarga y enriquece catálogo de restaurantes
         const response = await fetch(API_URL);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -70,15 +176,60 @@ function Restaurantes({ onBack }) {
         const uniqueLocations = [...new Set(enrichedData.map(r => r.Municipio))].sort();
         setLocations(uniqueLocations);
 
-        setLoading(false);
       } catch (err) {
         setError(err.message);
-        setLoading(false);
       }
     };
 
     fetchRestaurants();
   }, []);
+
+  useEffect(() => {
+    const fetchWeatherForFiltered = async () => {
+      if (!filteredRestaurants.length) return;
+
+      const subset = filteredRestaurants.slice(0, visibleCount);
+      const updates = {};
+
+      await Promise.all(subset.map(async (restaurant) => {
+        // Prioriza coords del dataset; si no hay, geocodifica municipio
+        let coords = parseCoords(restaurant);
+        if (!coords) {
+          coords = await geocodeCity(restaurant.Municipio);
+        }
+        if (!coords) {
+          coords = DEFAULT_COORDS;
+        }
+        if (!coords) return;
+
+        const cacheKey = `${coords.lat.toFixed(3)},${coords.lng.toFixed(3)}`;
+
+        if (weatherCacheRestaurants.has(cacheKey)) {
+          updates[restaurant.Código] = weatherCacheRestaurants.get(cacheKey);
+          return;
+        }
+
+        try {
+          const weather = await fetchCurrentWeather(coords.lat, coords.lng);
+          if (weather) {
+            weatherCacheRestaurants.set(cacheKey, weather);
+            updates[restaurant.Código] = weather;
+          } else {
+            updates[restaurant.Código] = { label: 'Sin datos', temperature: null };
+          }
+        } catch (err) {
+          console.error('Error obteniendo el tiempo:', err);
+          updates[restaurant.Código] = { label: 'Sin datos', temperature: null };
+        }
+      }));
+
+      if (Object.keys(updates).length) {
+        setWeatherById((prev) => ({ ...prev, ...updates }));
+      }
+    };
+
+    fetchWeatherForFiltered();
+  }, [filteredRestaurants, visibleCount]);
 
   const applyFilters = () => {
     let filtered = allRestaurants.filter(restaurant => {
@@ -89,6 +240,7 @@ function Restaurantes({ onBack }) {
       return true;
     });
     setFilteredRestaurants(filtered);
+    setVisibleCount(20);
   };
 
   const resetFilters = () => {
@@ -99,6 +251,7 @@ function Restaurantes({ onBack }) {
       disponibilidad: 'todos'
     });
     setFilteredRestaurants(allRestaurants);
+    setVisibleCount(20);
   };
 
   const handleFilterChange = (e) => {
@@ -123,11 +276,6 @@ function Restaurantes({ onBack }) {
     4: 'TRADICIONAL',
     3: 'ESTÁNDAR',
     2: 'ECONÓMICO'
-  };
-
-  const availabilityLabels = {
-    'disponible': '✓ Disponible',
-    'reservado': '⏰ Reservado'
   };
 
   if (error) {
@@ -220,7 +368,7 @@ function Restaurantes({ onBack }) {
         {filteredRestaurants.length === 0 ? (
           <div className="no-results">No se encontraron restaurantes con los filtros seleccionados</div>
         ) : (
-          filteredRestaurants.map(restaurant => (
+          filteredRestaurants.slice(0, visibleCount).map(restaurant => (
             <div key={restaurant.Código} className="restaurant-card">
               <div className="restaurant-image-container">
                 <img
@@ -235,6 +383,18 @@ function Restaurantes({ onBack }) {
                 <div className="restaurant-meta">
                   <span className="restaurant-location">📍 {restaurant.Municipio}</span>
                   <span className="restaurant-rating">⭐ {restaurant.rating}</span>
+                  <span className="weather-badge">
+                    {weatherById[restaurant.Código]
+                      ? (
+                        <>
+                          🌤️ {weatherById[restaurant.Código].temperature !== null && weatherById[restaurant.Código].temperature !== undefined
+                            ? `${Math.round(weatherById[restaurant.Código].temperature)}°C`
+                            : '--'}
+                          {` · ${weatherById[restaurant.Código].label || 'Tiempo'}`}
+                        </>
+                      )
+                      : '🌤️ Cargando tiempo...'}
+                  </span>
                 </div>
                 <button className="reservar-btn" onClick={() => handleReservaClick(restaurant)}>RESERVAR</button>
               </div>
@@ -242,6 +402,14 @@ function Restaurantes({ onBack }) {
           ))
         )}
       </div>
+
+      {filteredRestaurants.length > visibleCount && (
+        <div className="load-more-container">
+          <button className="load-more-btn" onClick={() => setVisibleCount((v) => v + 20)}>
+            Cargar más
+          </button>
+        </div>
+      )}
 
       {selectedRestaurant && (
         <ReservaModal
