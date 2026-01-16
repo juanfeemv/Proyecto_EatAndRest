@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import './App.css';
-import Restaurantes from './Restaurantes';
-import Hoteles from './Hoteles';
+import './styles/App.css';
+import Restaurantes from './pages/Restaurantes/Restaurantes';
+import Hoteles from './pages/Hoteles/Hoteles';
 import escudoMurcia from './assets/Escudo_ca_Murcia_(stylized).svg.png';
 
 function App() {
+  // Navegación simple entre home, hoteles y restaurantes
   const [currentView, setCurrentView] = useState('home');
   const [isSecondaryVisible, setIsSecondaryVisible] = useState(false);
   const secondaryRef = useRef(null);
@@ -19,7 +20,7 @@ function App() {
         });
       },
       {
-        threshold: 0.2, // Trigger when 20% of the section is visible
+        threshold: 0.2, // Dispara cuando el 20% de la sección es visible
       }
     );
 
@@ -34,7 +35,7 @@ function App() {
     };
   }, []);
 
-  // Scroll to top when view changes
+  // Sube al inicio al cambiar de vista
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentView]);

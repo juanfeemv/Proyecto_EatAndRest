@@ -1,0 +1,349 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Display:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&display=swap');
+
+#root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Noto Serif Display', serif;
+  overflow-x: hidden;
+  width: 100%;
+  margin: 0;
+  letter-spacing: -3px;
+
+}
+
+.seccion-hero {
+  position: relative;
+  height: 100vh;
+  background: url('../assets/puesta-sol-rosa-restaurant-noguera-denia.jpg');
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 0 8%;
+  color: white;
+  width: 100%;
+}
+
+
+.logo {
+  position: absolute;
+  top: 80px;
+  left: 8%;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 2rem;
+  font-weight: 300;
+}
+
+.escudo {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.escudo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.titulo-hero {
+  font-family: 'Noto Serif Display', serif;
+  font-size: 6rem;
+  font-weight: 300;
+  margin-bottom: 60px;
+  max-width: 1200px;
+  color: white;
+  text-align: left;
+  letter-spacing: -12px;
+
+}
+
+.contenedor-botones {
+  display: flex;
+  gap: 30px;
+}
+
+.boton {
+  padding: 25px 70px;
+  border: 2px solid white;
+  background: transparent;
+  color: white;
+  font-size: 1.4rem;
+  font-weight: 400;
+  font-family: inherit;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  border-radius: 0;
+  font-family: 'Crimson Pro', serif;
+  letter-spacing: -0.5px;
+
+}
+
+.boton:hover {
+  background: white;
+  color: #000000;
+  transform: translateY(-3px);
+}
+
+.seccion-secundaria {
+  position: relative;
+  min-height: 100vh;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.9));
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 100px 8%;
+  color: white;
+  text-align: center;
+}
+
+.titulo-secundario {
+  font-family: 'Noto Serif Display', serif;
+  font-size: 4.0rem;
+  font-weight: 400;
+  margin-bottom: 60px;
+  letter-spacing: -7px;
+
+}
+
+.descripcion {
+  font-size: 1.6rem;
+  line-height: 1.5;
+  max-width: 1000px;
+  font-family: 'Crimson Pro', serif;
+  font-weight: 300;
+  letter-spacing: -1px;
+
+}
+
+.scroll-down-indicator {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  font-size: 4rem;
+  color: white;
+  animation: bounce 2s infinite;
+}
+
+/* ========== ANIMACIONES ========== */
+
+/* Fotogramas clave para la entrada del logo */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fotogramas clave para la entrada del título */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fotogramas clave para la entrada de los botones */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Animación de rebote mejorada para el indicador de desplazamiento */
+@keyframes bounce {
+
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
+    transform: translateY(0) translateX(-50%);
+  }
+
+  40% {
+    transform: translateY(-15px) translateX(-50%);
+  }
+
+  60% {
+    transform: translateY(-7px) translateX(-50%);
+  }
+}
+
+/* Animación de fundido para la sección secundaria */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Animación de transición de vista */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Aplicar animaciones a los elementos */
+.logo {
+  animation: fadeInDown 0.8s ease-out;
+}
+
+.titulo-hero {
+  animation: fadeInUp 1s ease-out 0.2s both;
+}
+
+.contenedor-botones {
+  animation: fadeInScale 0.8s ease-out 0.5s both;
+}
+
+.contenedor-botones .boton:nth-child(1) {
+  animation: fadeInScale 0.6s ease-out 0.7s both;
+}
+
+.contenedor-botones .boton:nth-child(2) {
+  animation: fadeInScale 0.6s ease-out 0.85s both;
+}
+
+.scroll-down-indicator {
+  animation: bounce 2s infinite, fadeIn 0.8s ease-out 1s both;
+}
+
+.seccion-secundaria {
+  opacity: 0;
+  transform: translateY(50px);
+  transition: opacity 1s ease-out, transform 1s ease-out;
+}
+
+.seccion-secundaria.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.titulo-secundario {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease-out 0.3s, transform 0.8s ease-out 0.3s;
+}
+
+.seccion-secundaria.visible .titulo-secundario {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.descripcion {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease-out 0.5s, transform 0.8s ease-out 0.5s;
+}
+
+.seccion-secundaria.visible .descripcion {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Efecto de pulso del botón al pasar el cursor */
+.boton {
+  position: relative;
+  overflow: hidden;
+}
+
+.boton::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.boton:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.boton span {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 768px) {
+  .titulo-hero {
+    font-size: 3rem;
+    letter-spacing: 2px;
+
+  }
+
+  .titulo-secundario {
+    font-size: 2.5rem;
+  }
+
+  .descripcion {
+    font-size: 1.1rem;
+  }
+
+  .contenedor-botones {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .boton {
+    width: 100%;
+  }
+
+  .logo {
+    font-size: 1.8rem;
+  }
+}

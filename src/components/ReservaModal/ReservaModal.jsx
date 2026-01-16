@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
+import * as utm from 'utm';
 import './ReservaModal.css';
 
 function ReservaModal({ isOpen, onClose, item, tipo }) {
+    const stripeCheckoutUrl = import.meta.env.VITE_STRIPE_CHECKOUT_URL;
+
+    // Estado del formulario y validación mínima en cliente
     const [formData, setFormData] = useState({
         nombre: '',
         email: '',
@@ -23,7 +27,7 @@ function ReservaModal({ isOpen, onClose, item, tipo }) {
             ...formData,
             [name]: value
         });
-        // Clear error when user starts typing
+        // Limpia el error al teclear
         if (errors[name]) {
             setErrors({
                 ...errors,
@@ -79,7 +83,7 @@ function ReservaModal({ isOpen, onClose, item, tipo }) {
             return;
         }
 
-        // Guardar reserva en localStorage
+        // Guarda la reserva en localStorage para dejar un rastro local
         const reserva = {
             id: Date.now(),
             tipo,
@@ -92,6 +96,11 @@ function ReservaModal({ isOpen, onClose, item, tipo }) {
         const reservasGuardadas = JSON.parse(localStorage.getItem('reservas') || '[]');
         reservasGuardadas.push(reserva);
         localStorage.setItem('reservas', JSON.stringify(reservasGuardadas));
+
+        if (stripeCheckoutUrl) {
+            window.location.href = stripeCheckoutUrl;
+            return;
+        }
 
         // Mostrar mensaje de éxito
         setShowSuccess(true);
@@ -115,6 +124,55 @@ function ReservaModal({ isOpen, onClose, item, tipo }) {
         }, 2500);
     };
 
+    // Intenta convertir coordenadas UTM a lat/lon si vienen en ese formato
+    const parseHotelCoordinates = (latStr, lngStr) => {
+        if (!latStr || !lngStr) {
+            return null;
+        }
+
+        const north = parseFloat(String(latStr).replace(',', '.'));
+        const east = parseFloat(String(lngStr).replace(',', '.'));
+
+        if (Number.isNaN(north) || Number.isNaN(east)) {
+            return null;
+        }
+
+        try {
+            const result = utm.toLatLon(east, north, 30, 'N');
+            return {
+                lat: result.latitude,
+                lng: result.longitude
+            };
+        } catch (error) {
+            console.error('Error convirtiendo coordenadas UTM:', error);
+            return null;
+        }
+    };
+
+    // Construye URL de Google Maps: primero coord, luego búsqueda textual
+    const buildMapUrl = () => {
+        const rawLat = item?.Latitud || item?.latitud || item?.LATITUD;
+        const rawLng = item?.Longitud || item?.longitud || item?.LONGITUD;
+        const lat = rawLat ? parseFloat(String(rawLat).replace(',', '.')) : null;
+        const lng = rawLng ? parseFloat(String(rawLng).replace(',', '.')) : null;
+
+        const utmCoords = parseHotelCoordinates(rawLat, rawLng);
+        const usableCoords = utmCoords || (!Number.isNaN(lat) && !Number.isNaN(lng) && lat !== null && lng !== null
+            ? { lat, lng }
+            : null);
+
+        if (usableCoords) {
+            return `https://www.google.com/maps?q=${usableCoords.lat},${usableCoords.lng}&z=15&output=embed`;
+        }
+
+        const addressParts = [item?.Nombre, item?.Municipio, item?.Direccion || item?.Dirección || item?.Domicilio]
+            .filter(Boolean)
+            .join(', ');
+
+        const query = encodeURIComponent(addressParts || item?.Nombre || 'Murcia');
+        return `https://www.google.com/maps?q=${query}&output=embed`;
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -129,6 +187,19 @@ function ReservaModal({ isOpen, onClose, item, tipo }) {
                             <div className="modal-item-info">
                                 <h3>{item.Nombre}</h3>
                                 <p>📍 {item.Municipio}</p>
+                            </div>
+                        </div>
+
+                        <div className="map-section">
+                            <h4>Ubicación en Google Maps</h4>
+                            <div className="map-embed">
+                                <iframe
+                                    title={`Mapa de ${item.Nombre}`}
+                                    src={buildMapUrl()}
+                                    allowFullScreen
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer-when-downgrade"
+                                ></iframe>
                             </div>
                         </div>
 

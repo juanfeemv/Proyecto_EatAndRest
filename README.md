@@ -1,16 +1,33 @@
-# React + Vite
+# Eat & Rest · Murcia
+## Datos de hoteles y restaurantes
+- Fuente: Open Data Región de Murcia.
+	- Hoteles: `https://nexo.carm.es/nexo/archivos/recursos/opendata/json/Hoteles.json`
+	- Restaurantes: `https://nexo.carm.es/nexo/archivos/recursos/opendata/json/Restaurantes.json`
+- Los utilizo con:
+	- Categorización y rating.
+	- Conversión de coordenadas: si vienen en UTM se convierten a lat/lon con la librería [`utm`](https://www.npmjs.com/package/utm); si faltan coordenadas se codifica el municipio con la API pública de Open‑Meteo.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## API del tiempo (Open‑Meteo)
+- Servicio: `https://api.open-meteo.com/v1/forecast` con `current_weather=true`.
+- Geocodificación de respaldo: `https://geocoding-api.open-meteo.com/v1/search` para obtener lat/lon por municipio.
+- Sin API key. Se cachean resultados por coordenada y solo se consulta para los primeros 20 ítems visibles.
 
-Currently, two official plugins are available:
+## Pasarela de pagos (Stripe)
+- Se usa un Payment Link/Checkout URL en modo test. Configura en `.env.local`:
+	VITE_STRIPE_CHECKOUT_URL=https://checkout.stripe.com/c/pay_xxx   # URL de tu Payment Link o Session de prueba
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- En el modal, tras guardar la reserva en `localStorage`, se redirige a esa URL.
 
-## React Compiler
+## Google Maps
+- Embed con `<iframe>` apuntando a `https://www.google.com/maps?q=lat,lng&output=embed`.
+- Prioriza lat/lon del dataset; si están en UTM se convierten con `utm`; si no hay coordenadas válidas, usa el texto de la dirección/nombre para que Google Maps busque la ubicación.
 
-The React Compiler is not enabled on this template. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Variables de entorno
+Crea `.env.local` en la raíz con la URL de Stripe:
+```
+VITE_STRIPE_CHECKOUT_URL=https://checkout.stripe.com/c/pay_xxx
+```
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Notas
+- No es necesario API key para Open‑Meteo ni para el embed de Google Maps.
+- Si quieres pasar a un checkout dinámico con importes variables, necesitarás un backend que cree sesiones de Stripe con la clave secreta.
